@@ -36,7 +36,7 @@ variables:
   - name: static-variable
     value: 'static value'
   - name: runtime-variable
-    value: $[variables.var1-in-group] # from variable group
+    value: $[variables['var1-in-group']] # from variable group
   - name: compile-variable
     ${{ if parameters.p2bool }}: 
       value: 'value-1'
