@@ -16,10 +16,6 @@ stages:
     value: 'value-true'
   ${{ else }}: 
     value: 'value-false'
-  - name: runtimeVar
-    value: $[variables['var1-in-group']] # from variable group
-  - name: isMain # also runtime variable
-    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
   - name: test-overwrite
     value: 'stage level'
 
