@@ -11,18 +11,11 @@ trigger:
 
 # Inputs from the UI, note parameters have types.
 parameters:
-- name: p1string
-  displayName: String parameter
-  type: string
-  default: 'some value'
-- name: p2bool
-  displayName: Boolean parameter
+- name: includeS1
+  displayName: Include stage 1
   type: boolean
   default: true
-- name: p3int
-  displayName: Integer parameter
-  type: number
-  default: 42
+
 
 # Set the default pool for all stages and jobs
 pool:
@@ -38,18 +31,21 @@ variables:
 - name: runtime-variable
   value: $[variables['var1-in-group']] # from variable group
 - name: compile-variable
-  ${{ if parameters.p2bool }}: 
+  ${{ if parameters.includeS1 }}: 
     value: 'value-true'
   ${{ else }}:
     value: 'value-false'
 - name: test-overwrite
   value: 'top level'
+- name: azure_service_connection
+  value: arm-example-conn
 
 
 
 stages:
 - stage: s1
   displayName: Variables (s1)
+  condition: eq(${{ parameters.includeS1 }}, true)
 
   variables:
   - name: test-overwrite
@@ -169,6 +165,7 @@ stages:
   jobs:
   - job: j1
     displayName: Create actifact
+    condition: false # skipped: issue with uploading the artifact to https://vsblobprodsu6weu.vsblob.visualstudio.com.
     steps:
     # Pipeline artifacts have to be unique.
     # To support restartability, make the name unique each run.
@@ -234,6 +231,7 @@ stages:
 # https://learn.microsoft.com/azure/devops/pipelines/process/phases?view=azure-devops&tabs=yaml#agentless-tasks
 - stage: s3
   displayName: Agentless (s3)
+  dependsOn: []  # start immediately
 
   pool: server 
 
@@ -254,9 +252,10 @@ stages:
         onTimeout: 'resume' # Default: reject.
 
 
-
 - stage: s4
   displayName: Git (s4)
+  dependsOn: []  # start immediately
+
   jobs:
   - job: j1
     displayName: Git tasks
@@ -278,3 +277,20 @@ stages:
         git commit -m "DevOps: update readme [skip ci]"
         git push
       displayName: 'Git commit and push'
+
+- stage: s5
+  displayName: Azure CLI (s5)
+  jobs:
+    - job: j1
+      displayName: show account
+      steps:
+        - task: AzureCLI@2
+          displayName: 'Azure CLI'
+          inputs:
+            azureSubscription: $(azure_service_connection)
+            scriptType: 'pscore'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              az account show
+          env:
+            AZURE_CORE_OUTPUT: none # suppress output
