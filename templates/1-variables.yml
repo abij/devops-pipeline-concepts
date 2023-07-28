@@ -10,21 +10,17 @@ stages:
 
   variables:
   - group: lookup-variables  # https://docs.microsoft.com/azure/devops/pipelines/library/variable-groups
-  
   - name: staticVar
     value: 'static value'
-  
+  - name: compileVar
+  ${{ if parameters.var1-bool }}: 
+    value: 'value-true'
+  ${{ else }}: 
+    value: 'value-false'
   - name: runtimeVar
     value: $[variables['var1-in-group']] # from variable group
-  
-  # Runtime variable:
-  isMain: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
-
-  ${{ if parameters.var1-bool }}: 
-    compileVar: 'value-true'
-  ${{ else }}: 
-    compileVar: 'value-false'
-
+  - name: isMain # also runtime variable
+    value: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
   - name: test-overwrite
     value: 'stage level'
 
@@ -145,12 +141,12 @@ stages:
         value: $[ dependencies.d1.outputs['task_vars.var6'] ]
 
     steps:
-      - checkout: none  # skip checkout
-      - script: |
-          echo "  var1_no_output: $(var1_no_output)  (empty because isOutput=false)"
-          echo "  var2_is_output: $(var2_is_output)"
-          echo "  var6: $(var2_is_output)   (from deployment)"
-        displayName: Show vars (future job)
+    - checkout: none  # skip checkout
+    - script: |
+        echo "  var1_no_output: $(var1_no_output)  (empty because isOutput=false)"
+        echo "  var2_is_output: $(var2_is_output)"
+        echo "  var6: $(var2_is_output)   (from deployment)"
+      displayName: Show vars (future job)
 
 - stage: s1b
   displayName: Get Variables (s1b)
