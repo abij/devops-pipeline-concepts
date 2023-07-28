@@ -1,0 +1,18 @@
+stages:
+- stage: s5
+  displayName: Azure CLI (s5)
+  dependsOn: [] # start immediately
+
+  jobs:
+  - job: j1
+    displayName: show account
+    steps:
+    - task: AzureCLI@2
+      displayName: 'Azure CLI (default)'
+      inputs:
+        azureSubscription: $(azure_service_connection)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "What are the subscription this ServiceConnection have access to?"
+          az account show -o table

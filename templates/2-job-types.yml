@@ -1,0 +1,65 @@
+stages:
+- stage: s2a
+  displayName: Artifacts (s2a)
+  dependsOn: []  # start immediately
+  jobs:
+  - job: j1
+    displayName: Create actifact
+    steps:
+    # Pipeline artifacts have to be unique.
+    # To support restartability, make the name unique each run.
+    - script: |
+        name="artifact1#$(System.JobAttempt)-$(Build.BuildId)"
+        echo "##vso[task.setvariable variable=value;isOutput=true]$name"
+        echo "created variable 'value=$name'"
+      name: set_artifact_name
+      displayName: Unique artifact
+    
+    - task: CopyFiles@2
+      displayName: 'Copy Files to: $(Build.ArtifactStagingDirectory)'
+      inputs:
+        contents: 'README.md'
+        targetFolder: $(Build.ArtifactStagingDirectory)
+
+    - publish: $(Build.ArtifactStagingDirectory)
+      artifact: $(set_artifact_name.value)
+      displayName: Publish artifact
+
+- stage: s2b
+  displayName: Job-types (s2b)
+
+  jobs:
+  - job: j1
+    displayName: Type-Job
+    steps:
+    # Jobs checkout source-code of the selected branch by default.
+    # Jobs do not download pipline artifacts by default.
+    
+    # Note: restarting a job will point to the same commit in the branch!
+    - script: echo 'Jobs checkout code' && ls -lr .
+      displayName: 'Run a one-line script'
+
+  - deployment: d2
+    displayName: Type-Deployment
+    
+    variables:
+      artifact_name: $[stageDependencies.s2a.j1.outputs['set_artifact_name.value']]
+
+    # Type: Deployment is tighly coupled to an environment, defined as a string.
+    # Although it a string, but is linked to a Pipeline Environment.
+    # Configure the enviroment to:
+    # - Approvals: Single or multiple groups/individuals who all must approve. (no order, nr of people)
+    # - Branch Control: Limit access to specific branches (e.g. only from main/release) optionally check for Branch Policy.
+    # - Exclusive Lock: block concurrent Stages in any other pipeline with a deployment to the same environment.
+    # - Business Hours: Limit access within specified timeframe.
+    environment: 'example-env1'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          # Deployments do NOT checkout code.
+          # Deployments download (all) pipeline artifacts by default.
+          - script: |
+              echo "actifact_name: $(artifact_name)"
+              ls -lr $(Pipeline.Workspace)
+

@@ -1,0 +1,30 @@
+stages:
+- stage: s4
+  displayName: Git (s4)
+  dependsOn: []  # start immediately
+
+  jobs:
+  - job: j1
+    displayName: Update README
+    steps:
+    - checkout: self
+      persistCredentials: true  # allow push
+      fetchDepth: 0  # fetch all commits and branches
+      # https://learn.microsoft.com/azure/devops/pipelines/yaml-schema/steps-checkout?view=azure-pipelines#shallow-fetch
+
+    - script: |
+        set -e
+        git checkout $(Build.SourceBranchName)
+        git config --global user.email "no-reply@azure-devops.com"
+        git config --global user.name "Azure DevOps"
+      displayName: 'Git config'
+      
+    - script: sed -Ei 's/(Auto-update by pipeline:).*/\1 last buildId $(Build.BuildId)/g' README.md
+      displayName: Set buildId README
+
+    # Note: [skip-ci] in the commit message will prevent a new build to be triggered.
+    - script: | 
+        git add README.md
+        git commit -m "DevOps: update readme [skip ci]" 
+        git push
+      displayName: 'Git commit and push'

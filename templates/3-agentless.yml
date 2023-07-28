@@ -1,0 +1,25 @@
+stages:
+# In this stage we use a server pool, which is a pool of agents that are not hosted by Microsoft.
+# Some tasks require the pool: server, more info 
+# https://learn.microsoft.com/azure/devops/pipelines/process/phases?view=azure-devops&tabs=yaml#agentless-tasks
+- stage: s3
+  displayName: Agentless (s3)
+  dependsOn: []  # start immediately
+
+  pool: server 
+
+  jobs:
+  - job: j1
+    displayName: No agent tasks
+    steps:
+    - task: Delay@1
+      displayName: 'Delay 1 minute'
+      inputs:
+        delayForMinutes: '1'
+    
+    - task: ManualValidation@0
+      timeoutInMinutes: 1
+      inputs:
+        notifyUsers: '' # [orgname]\group name
+        instructions: 'This text describes actions for users, to decide: resume or reject, not this is NOT safe-guard. Because enyone can approve. For a blocking-approval you must use an Environment with approvals & checks!'
+        onTimeout: 'resume' # Default: reject.
