@@ -11,18 +11,18 @@ trigger:
 
 # Inputs from the UI, note parameters have types.
 parameters:
-  - name: p1string
-    displayName: String parameter
-    type: string
-    default: 'some value'
-  - name: p2bool
-    displayName: Boolean parameter
-    type: boolean
-    default: true
-  - name: p3int
-    displayName: Integer parameter
-    type: number
-    default: 42
+- name: p1string
+  displayName: String parameter
+  type: string
+  default: 'some value'
+- name: p2bool
+  displayName: Boolean parameter
+  type: boolean
+  default: true
+- name: p3int
+  displayName: Integer parameter
+  type: number
+  default: 42
 
 # Set the default pool for all stages and jobs
 pool:
@@ -32,49 +32,49 @@ pool:
 
 
 variables:
-  - group: lookup-variables  # https://docs.microsoft.com/azure/devops/pipelines/library/variable-groups
-  - name: static-variable
-    value: 'static value'
-  - name: runtime-variable
-    value: $[variables['var1-in-group']] # from variable group
-  - name: compile-variable
-    ${{ if parameters.p2bool }}: 
-      value: 'value-1'
-    ${{ else }}:
-      value: 'value-2'
-  - name: test-overwrite
-    value: 'top level'
+- group: lookup-variables  # https://docs.microsoft.com/azure/devops/pipelines/library/variable-groups
+- name: static-variable
+  value: 'static value'
+- name: runtime-variable
+  value: $[variables['var1-in-group']] # from variable group
+- name: compile-variable
+  ${{ if parameters.p2bool }}: 
+    value: 'value-1'
+  ${{ else }}:
+    value: 'value-2'
+- name: test-overwrite
+  value: 'top level'
 
 stages:
 - stage: s1
   displayName: Variables
 
   variables:
-    - name: test-overwrite
-      value: 'stage level'
+  - name: test-overwrite
+    value: 'stage level'
 
   jobs:
   - job: j1
     displayName: Predefined Variables
     # https://learn.microsoft.com/azure/devops/pipelines/build/variables
     steps:
-      - script: |
-          echo "Pipeline.Workspace: $(Pipeline.Workspace) (same as Agent.BuildDirectory)"
-          echo "Agent.HomeDirectory: $(Agent.HomeDirectory)"
-          echo "Agent.OS: $(Agent.OS)"
-          echo "AGENT_JOBSTATUS: $AGENT_JOBSTATUS"
-          echo "Agent.TempDirectory: $(Agent.TempDirectory) (cleaned after each job)"
-        displayName: Agent variables
-      
-      - script: |
-          echo "Build.ArtifactStagingDirectory: $(Build.ArtifactStagingDirectory)"
-          echo "Build.BuildId: $(Build.BuildId)"
-          echo "Build.Reason: $(Build.Reason)"
-          echo "Build.SourceBranch: $(Build.SourceBranch)"
-          echo "Build.SourceBranchName: $(Build.SourceBranchName)"
-        displayName: Build variables (not in template)
+    - script: |
+        echo "Pipeline.Workspace: $(Pipeline.Workspace) (same as Agent.BuildDirectory)"
+        echo "Agent.HomeDirectory: $(Agent.HomeDirectory)"
+        echo "Agent.OS: $(Agent.OS)"
+        echo "AGENT_JOBSTATUS: $AGENT_JOBSTATUS"
+        echo "Agent.TempDirectory: $(Agent.TempDirectory) (cleaned after each job)"
+      displayName: Agent variables
+    
+    - script: |
+        echo "Build.ArtifactStagingDirectory: $(Build.ArtifactStagingDirectory)"
+        echo "Build.BuildId: $(Build.BuildId)"
+        echo "Build.Reason: $(Build.Reason)"
+        echo "Build.SourceBranch: $(Build.SourceBranch)"
+        echo "Build.SourceBranchName: $(Build.SourceBranchName)"
+      displayName: Build variables (not in template)
 
-      - template: templates/steps-print-build-variables.yml
+    - template: templates/steps-print-build-variables.yml
   
   - job: j2
     displayName: User-defined variables
@@ -84,14 +84,54 @@ stages:
       value: 'j2 level'
 
     steps:
-      - script: |
-          echo "User-defined variables:"
-          echo "  $(static-variable)"
-          echo "  $(runtime-variable)"
-          echo "  $(compile-variable)"
-          echo "  $(test-overwrite)"
-        displayName: User-defined variables
+    - script: |
+        echo "User-defined variables:"
+        echo "  static-variable: $(static-variable)"
+        echo "  runtime-variable (from the group): $(runtime-variable)"
+        echo "  compile-variable: $(compile-variable)"
+        echo "  test-overwrite: $(test-overwrite)"
+      displayName: User-defined variables
 
+  - job: j3
+    displayName: Set variables
+    steps:
+    - script: |
+        # Note: taks 'name' is required for referencing output variables in other jobs!.
+        
+        echo "##vso[task.setvariable variable=var1_no_output]this is usable ONLY in this Job!"
+        echo "##vso[task.setvariable variable=var2_is_output;isOutput=true]This can by used in all jobs that dependsOn this stage!"
+        echo "##vso[task.setvariable variable=var3_no_output_is_secret;iSsecret=true]this is never shown in the logs!"
+        echo "##vso[task.setvariable variable=var4_is_output_is_readonly;isreadonly=true]this cannot be changed"
+        
+        # After this task the variables are available:
+        echo "$(var1_no_output)" # no output.
+      name: task_vars
+      displayName: Set variables
+
+    - script: |
+        echo "How to reference variables:"
+        echo "  var1: $(var1_no_output)"
+        echo "  var2: $(var2_is_output)"
+        echo "  var3: $(var3_no_output_is_secret)"
+        echo "  var4: $(var4_is_output_is_readonly)"
+      displayName: 
+
+  - job: j4
+    displayName: Get variables
+    dependsOn: j3
+    steps:
+    - script: |
+        echo "How to reference variables:"
+        echo "  $(var1_no_output)"
+
+        echo "##vso[task.setvariable variable=var1_no_output]this is usable ONLY in this Job!"
+        echo "##vso[task.setvariable variable=var2_is_output;isOutput=true]This can by used in all jobs that dependsOn this stage!"
+        echo "##vso[task.setvariable variable=var3_no_output_is_secret;iSsecret=true]this is never shown in the logs!"
+        echo "##vso[task.setvariable variable=var4_is_output_is_readonly;isreadonly=true]this cannot be changed"
+        
+        # After this task the variables are available:
+        echo "$(var1_no_output)" # no output.
+      name: task_vars
 
 
 - stage: s2
@@ -100,12 +140,12 @@ stages:
   - job: j1
     displayName: Type-Job
     steps:
-      # Jobs checkout source-code of the selected branch by default.
-      # Jobs do not download pipline artifacts by default.
-      
-      # Note: restarting a job will point to the same commit in the branch!
-      - script: echo 'Jobs checkout code' && ls -lr .
-        displayName: 'Run a one-line script'
+    # Jobs checkout source-code of the selected branch by default.
+    # Jobs do not download pipline artifacts by default.
+    
+    # Note: restarting a job will point to the same commit in the branch!
+    - script: echo 'Jobs checkout code' && ls -lr .
+      displayName: 'Run a one-line script'
 
   - deployment: d2
     displayName: Type-Deployment
@@ -127,15 +167,17 @@ stages:
           - script: echo 'Deploying...'
           - script: echo 'Deployed!'
 
+# In this stage we use a server pool, which is a pool of agents that are not hosted by Microsoft.
+# Some tasks require the pool: server, more info 
+# https://learn.microsoft.com/azure/devops/pipelines/process/phases?view=azure-devops&tabs=yaml#agentless-tasks
 - stage: s3
   displayName: Agentless
 
-    # https://learn.microsoft.com/azure/devops/pipelines/process/phases?view=azure-devops&tabs=yaml#agentless-tasks
   pool: server 
 
   jobs:
   - job: j1
-    displayName: No Agent
+    displayName: No agent tasks
     steps:
     - task: Delay@1
       displayName: 'Delay 1 minute'
@@ -143,11 +185,11 @@ stages:
         delayForMinutes: '1'
     
     - task: ManualValidation@0
+      timeoutInMinutes: 1
       inputs:
         notifyUsers: '' # [orgname]\group name
-        instructions: 'This text describes actions for users, to decide: resume or reject, not this is NOT safe-guard. Because enyone can approve!'
+        instructions: 'This text describes actions for users, to decide: resume or reject, not this is NOT safe-guard. Because enyone can approve. For a blocking-approval you must use an Environment with approvals & checks!'
         onTimeout: 'resume' # Default: reject.
-        timeoutInMinutes: 1
 
 - stage: s4
   displayName: Git
