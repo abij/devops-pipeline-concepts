@@ -14,12 +14,15 @@ parameters:
   - name: p1string
     displayName: String parameter
     type: string
+    default: 'some value'
   - name: p2bool
     displayName: Boolean parameter
     type: boolean
+    default: true
   - name: p3int
     displayName: Integer parameter
     type: number
+    default: 42
 
 # Set the default pool for all stages and jobs
 pool:
@@ -76,8 +79,8 @@ stages:
           - script: echo 'Deploying...'
           - script: echo 'Deployed!'
 
-- stage: s2
-  displayName: Stage 2 serverless
+- stage: s3
+  displayName: Stage 3 serverless
 
     # https://learn.microsoft.com/azure/devops/pipelines/process/phases?view=azure-devops&tabs=yaml#agentless-tasks
   pool: server 
