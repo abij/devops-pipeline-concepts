@@ -39,9 +39,9 @@ variables:
   value: $[variables['var1-in-group']] # from variable group
 - name: compile-variable
   ${{ if parameters.p2bool }}: 
-    value: 'value-1'
+    value: 'value-true'
   ${{ else }}:
-    value: 'value-2'
+    value: 'value-false'
 - name: test-overwrite
   value: 'top level'
 
@@ -114,7 +114,7 @@ stages:
       name: task_vars
       displayName: Set variables
 
-    - script: echo "##vso[task.setvariable variable=var4_no_output_is_readonly;isreadonly=true]or was it mutable?."
+    - script: echo "##vso[task.setvariable variable=var4_no_output_is_readonly]or was it mutable?."
       displayName: Try to update readonly
       failOnStderr: false
       continueOnError: true
@@ -165,17 +165,27 @@ stages:
 
 - stage: s2a
   displayName: Artifacts (s2a)
+  dependsOn: none  # start immediately
   jobs:
   - job: j1
     displayName: Create actifact
     steps:
     # Pipeline artifacts have to be unique.
     # To support restartability, make the name unique each run.
-    - script: echo "##vso[task.setvariable variable=value;isOutput=true]artifact1#$(System.JobAttempt)-$(Build.BuildId)"
+    - script: |
+        name="artifact1#$(System.JobAttempt)-$(Build.BuildId)"
+        echo "##vso[task.setvariable variable=value;isOutput=true]$name"
+        echo "created variable 'value=$name'"
       name: set_artifact_name
       displayName: Unique artifact
     
-    - publish: $(Pipeline.Workspace)
+    - task: CopyFiles@2
+      displayName: 'Copy Files to: $(Build.ArtifactStagingDirectory)'
+      inputs:
+        contents: 'README.md'
+        targetFolder: $(Build.ArtifactStagingDirectory)
+
+    - publish: $(Build.ArtifactStagingDirectory)
       artifact: $(set_artifact_name.value)
       displayName: Publish artifact
 
