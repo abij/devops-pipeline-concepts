@@ -45,9 +45,11 @@ variables:
 - name: test-overwrite
   value: 'top level'
 
+
+
 stages:
 - stage: s1
-  displayName: Variables
+  displayName: Variables (s1)
 
   variables:
   - name: test-overwrite
@@ -112,7 +114,7 @@ stages:
       name: task_vars
       displayName: Set variables
 
-    - script: echo "##vso[task.setvariable variable=var4_no_output_is_readonly;isreadonly=true]or was it mutalbe?."
+    - script: echo "##vso[task.setvariable variable=var4_no_output_is_readonly;isreadonly=true]or was it mutable?."
       displayName: Try to update readonly
       failOnStderr: false
       continueOnError: true
@@ -143,8 +145,10 @@ stages:
           echo "  var2_is_output: $(var2_is_output)"
         displayName: Show vars (future job)
 
+
+
 - stage: s1b
-  displayName: Get Variables
+  displayName: Get Variables (s1b)
   dependsOn: s1
 
   variables:
@@ -152,15 +156,32 @@ stages:
 
   jobs:
   - job: j1
-    displayName: Get Variables
+    displayName: Get Variables (s1.j3)
     steps:
       - checkout: none  # skip checkout
       - script: |
           echo "  var2: $(var2)"
         displayName: Show vars (future stage)
 
-- stage: s2
-  displayName: Job-types
+- stage: s2a
+  displayName: Artifacts (s2a)
+  jobs:
+  - job: j1
+    displayName: Create actifact
+    steps:
+    # Pipeline artifacts have to be unique.
+    # To support restartability, make the name unique each run.
+    - script: echo "##vso[task.setvariable variable=value;isOutput=true]artifact1#$(System.JobAttempt)-$(Build.BuildId)"
+      name: set_artifact_name
+      displayName: Unique artifact
+    
+    - publish: $(Pipeline.Workspace)
+      artifact: $(set_artifact_name.value)
+      displayName: Publish artifact
+
+- stage: s2b
+  displayName: Job-types (s2b)
+
   jobs:
   - job: j1
     displayName: Type-Job
@@ -175,6 +196,9 @@ stages:
   - deployment: d2
     displayName: Type-Deployment
     
+    variables:
+      artifact_name: $[stageDependencies.s2a.j1.outputs['set_artifact_name.value']]
+
     # Type: Deployment is tighly coupled to an environment, defined as a string.
     # Although it a string, but is linked to a Pipeline Environment.
     # Configure the enviroment to:
@@ -189,14 +213,17 @@ stages:
           steps:
           # Deployments do NOT checkout code.
           # Deployments download (all) pipeline artirifacts by default.
-          - script: echo 'Deploying...'
-          - script: echo 'Deployed!'
+          - script: |
+              echo "actifact_name: $(artifact_name)"
+              ls -lr $(Pipeline.Workspace)
+
+
 
 # In this stage we use a server pool, which is a pool of agents that are not hosted by Microsoft.
 # Some tasks require the pool: server, more info 
 # https://learn.microsoft.com/azure/devops/pipelines/process/phases?view=azure-devops&tabs=yaml#agentless-tasks
 - stage: s3
-  displayName: Agentless
+  displayName: Agentless (s3)
 
   pool: server 
 
@@ -216,8 +243,10 @@ stages:
         instructions: 'This text describes actions for users, to decide: resume or reject, not this is NOT safe-guard. Because enyone can approve. For a blocking-approval you must use an Environment with approvals & checks!'
         onTimeout: 'resume' # Default: reject.
 
+
+
 - stage: s4
-  displayName: Git
+  displayName: Git (s4)
   jobs:
   - job: j1
     displayName: Git tasks
