@@ -1,6 +1,6 @@
 
 parameters:
-  - name: var1-bool
+  - name: boolVar
     type: boolean
     default: true
 
@@ -13,7 +13,7 @@ stages:
   - name: staticVar
     value: 'static value'
   - name: compileVar
-  ${{ if parameters.var1-bool }}: 
+  ${{ if eq(parameters.boolVar, true) }}: 
     value: 'value-true'
   ${{ else }}: 
     value: 'value-false'
