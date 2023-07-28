@@ -31,9 +31,28 @@ pool:
   vmImage: 'ubuntu-latest'  # other example: 'windows-latest'
 
 
+variables:
+  - group: lookup-variables  # https://docs.microsoft.com/azure/devops/pipelines/library/variable-groups
+  - name: static-variable
+    value: 'static value'
+  - name: runtime-variable
+    value: $[variables.var1-in-group] # from variable group
+  - name: compile-variable
+    ${{ if parameters.p2boolean }}: 
+      value: 'value-1'
+    ${{ else }}:
+      value: 'value-2'
+  - name: test-overwrite
+    value: 'top level'
+
 stages:
 - stage: s1
-  displayName: Stage 1 variables
+  displayName: Variables
+
+  variables:
+    - name: test-overwrite
+      value: 'stage level'
+
   jobs:
   - job: j1
     displayName: Predefined Variables
@@ -56,9 +75,27 @@ stages:
         displayName: Build variables (not in template)
 
       - template: templates/steps-print-build-variables.yml
+  
+  - job: j2
+    displayName: User-defined variables
+    
+    variables:
+    - name: test-overwrite
+      value: 'j2 level'
+
+    steps:
+      - script: |
+          echo "User-defined variables:"
+          echo "  $(static-variable)"
+          echo "  $(runtime-variable)"
+          echo "  $(compile-variable)"
+          echo "  $(test-overwrite)"
+        displayName: User-defined variables
+
+
 
 - stage: s2
-  displayName: Stage 2 job-types
+  displayName: Job-types
   jobs:
   - job: j1
     displayName: Type-Job
@@ -91,7 +128,7 @@ stages:
           - script: echo 'Deployed!'
 
 - stage: s3
-  displayName: Stage 3 Agentless
+  displayName: Agentless
 
     # https://learn.microsoft.com/azure/devops/pipelines/process/phases?view=azure-devops&tabs=yaml#agentless-tasks
   pool: server 
@@ -110,16 +147,16 @@ stages:
         notifyUsers: '' # [orgname]\group name
         instructions: 'This text describes actions for users, to decide: resume or reject, not this is NOT safe-guard. Because enyone can approve!'
         onTimeout: 'resume' # Default: reject.
-        timeoutInMinutes: 2
+        timeoutInMinutes: 1
 
 - stage: s4
-  displayName: Stage 4 git
+  displayName: Git
   jobs:
   - job: j1
     displayName: Git tasks
     steps:
     - checkout: self
-      persistCredentials: true  # allow 
+      persistCredentials: true  # allow push 
     
     - script: sed -Ei 's/(Auto-update by pipeline:).*/\1 last runid $(Build.BuildId)/g' README.md
       displayName: Update README
