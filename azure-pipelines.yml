@@ -118,6 +118,7 @@ stages:
     - task: PythonScript@0
       displayName: Python variable
       inputs:
+        scriptSource: 'inline'
         script: |
           print('Output variables can be created inside Pyhton code:')
           print('##vso[task.setvariable variable=var5_python]Created inside Python')
