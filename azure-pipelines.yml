@@ -6,7 +6,8 @@
 # If you want to use a different filename, you will need to register the pipeline manually.
 
 # When to run the pipeline.
-trigger: none
+trigger: 
+- main
 
 # Inputs from the UI, note parameters have types.
 parameters:
@@ -18,7 +19,7 @@ parameters:
     type: boolean
   - name: p3int
     displayName: Integer parameter
-    type: int
+    type: number
 
 # Set the default pool for all stages and jobs
 pool:
@@ -32,6 +33,25 @@ stages:
   displayName: Stage 1 variables
   jobs:
   - job: j1
+    displayName: Predefined Variables
+    # https://learn.microsoft.com/azure/devops/pipelines/build/variables
+    steps:
+      - script: |
+          echo "Pipeline.Workspace: $(Pipeline.Workspace) (same as Agent.BuildDirectory)"
+          echo "Agent.HomeDirectory: $(Agent.HomeDirectory)"
+          echo "Agent.OS: $(Agent.OS)"
+          echo "AGENT_JOBSTATUS: $AGENT_JOBSTATUS"
+          echo "Agent.TempDirectory: $(Agent.TempDirectory) (cleaned after each job)"
+        displayName: Agent variables
+      
+      - script: |
+          echo "Build.ArtifactStagingDirectory: $(Build.ArtifactStagingDirectory)"
+          echo "Build.BuildId: $(Build.Id)"
+          echo "Build.Reason: $(Build.Reason)"
+          echo "Build.SourceBranch: $(Build.SourceBranch)"
+          echo "Build.SourceBranchName: $(Build.SourceBranchName)"
+          
+        displayName: Build variables (not in template)
 
 - stage: s2
   displayName: Stage 2 job-types
