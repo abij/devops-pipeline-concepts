@@ -17,8 +17,13 @@ pool:
   vmImage: 'ubuntu-latest'  # other example: 'windows-latest'
 
 
+# Various types of variables can be defined here.
 variables:
-- group: lookup-variables  # https://docs.microsoft.com/azure/devops/pipelines/library/variable-groups
+- template: templates\global-vars.yml
+# group: https://docs.microsoft.com/azure/devops/pipelines/library/variable-groups
+- group: lookup-variables
+- name: runtimeVar
+  value: $[variables['var1-in-group']] # key inside group: lookup-variables
 - name: test-overwrite
   value: 'top level'
 - name: azure_service_connection
