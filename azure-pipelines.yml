@@ -277,20 +277,23 @@ stages:
     displayName: Git tasks
     steps:
     - checkout: self
-      persistCredentials: true  # allow push 
-    
+      persistCredentials: true  # allow push
+      fetchDepth: 0  # fetch all commits and branches
+      # https://learn.microsoft.com/azure/devops/pipelines/yaml-schema/steps-checkout?view=azure-pipelines#shallow-fetch
+
+    - script: |
+        set -e
+        git checkout $(Build.SourceBranch)
+        git config --global user.email "no-reply@azure-devops.com"
+        git config --global user.name "Azure DevOps"
+      displayName: 'Git config'
+      
     - script: sed -Ei 's/(Auto-update by pipeline:).*/\1 last runid $(Build.BuildId)/g' README.md
       displayName: Update README
 
-    - script: |
-        # Auto update readme
-        sed -Ei 's/(Auto-update by pipeline:).*/\1 last runid $(Build.BuildId)/g' README.md
-
-        git checkout $(Build.SourceBranch)
-        git config --global user.email ""
-        git config --global user.name "Azure DevOps"
+    - script: | 
         git add README.md
-        git commit -m "DevOps: update readme [skip ci]"
+        git commit -m "DevOps: update readme [skip ci]" 
         git push
       displayName: 'Git commit and push'
 
