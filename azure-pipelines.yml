@@ -18,6 +18,7 @@ pool:
 
 
 variables:
+- group: lookup-variables  # https://docs.microsoft.com/azure/devops/pipelines/library/variable-groups
 - name: test-overwrite
   value: 'top level'
 - name: azure_service_connection

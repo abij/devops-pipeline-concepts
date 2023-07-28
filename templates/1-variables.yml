@@ -9,7 +9,6 @@ stages:
   displayName: Variables (s1)
 
   variables:
-  - group: lookup-variables  # https://docs.microsoft.com/azure/devops/pipelines/library/variable-groups
   - name: staticVar
     value: 'static value'
   - name: compileVar
