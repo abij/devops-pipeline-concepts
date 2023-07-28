@@ -283,7 +283,7 @@ stages:
 
     - script: |
         set -e
-        git checkout $(Build.SourceBranch)
+        git checkout $(Build.SourceBranchName)
         git config --global user.email "no-reply@azure-devops.com"
         git config --global user.name "Azure DevOps"
       displayName: 'Git config'
