@@ -58,6 +58,7 @@ stages:
     displayName: Predefined Variables
     # https://learn.microsoft.com/azure/devops/pipelines/build/variables
     steps:
+    - checkout: none  # skip checkout
     - script: |
         echo "Pipeline.Workspace: $(Pipeline.Workspace) (same as Agent.BuildDirectory)"
         echo "Agent.HomeDirectory: $(Agent.HomeDirectory)"
@@ -72,6 +73,7 @@ stages:
         echo "Build.Reason: $(Build.Reason)"
         echo "Build.SourceBranch: $(Build.SourceBranch)"
         echo "Build.SourceBranchName: $(Build.SourceBranchName)"
+        echo "Note: a branch /feature/sneaky/main is also called main!"
       displayName: Build variables (not in template)
 
     - template: templates/steps-print-build-variables.yml
@@ -84,6 +86,7 @@ stages:
       value: 'j2 level'
 
     steps:
+    - checkout: none  # skip checkout
     - script: |
         echo "User-defined variables:"
         echo "  static-variable: $(static-variable)"
@@ -95,6 +98,7 @@ stages:
   - job: j3
     displayName: Set variables (j3)
     steps:
+    - checkout: none  # skip checkout
     - script: |
         # Note: taks 'name' is required for referencing output variables in other jobs!.
 
@@ -133,11 +137,27 @@ stages:
         value: $[ dependencies.j3.outputs['task_vars.var2_is_output'] ]
 
     steps:
+      - checkout: none  # skip checkout
       - script: |
           echo "  var1_no_output: $(var1_no_output)  (empty because isOutput=false)"
           echo "  var2_is_output: $(var2_is_output)"
         displayName: Show vars (future job)
 
+- stage: s1b
+  displayName: Get Variables
+  dependsOn: s1
+
+  variables:
+    var2: $[stageDependencies.s1.j3.outputs['task_vars.var2_is_output']]
+
+  jobs:
+  - job: j1
+    displayName: Get Variables
+    steps:
+      - checkout: none  # skip checkout
+      - script: |
+          echo "  var2: $(var2)"
+        displayName: Show vars (future stage)
 
 - stage: s2
   displayName: Job-types
@@ -168,7 +188,7 @@ stages:
         deploy:
           steps:
           # Deployments do NOT checkout code.
-          # Deployments download 
+          # Deployments download (all) pipeline artirifacts by default.
           - script: echo 'Deploying...'
           - script: echo 'Deployed!'
 
