@@ -110,3 +110,16 @@ stages:
         notifyUsers: '' # [orgname]\group name
         instructions: 'Resume or reject based on your descicion'
         onTimeout: 'resume' # Default: reject.
+
+- stage: s4
+  displayName: Stage 4 git
+  jobs:
+  - job: j1
+    displayName: Git tasks
+    steps:
+    - checkout: self
+      # Checkout the source code of the current pipeline.
+      # Note: this is not the same as the default checkout of a job.
+      # Note: this is not the same as the checkout of a deployment.
+      # Note: this is not the same as the checkout of a template.
+      # Note: this is not the same a
