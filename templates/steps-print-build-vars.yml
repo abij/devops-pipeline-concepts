@@ -1,0 +1,8 @@
+steps:
+  - script: |
+      echo "Build.ArtifactStagingDirectory: $(Build.ArtifactStagingDirectory)"
+      echo "Build.BuildId: $(Build.BuildId)"
+      echo "Build.Reason: $(Build.Reason)"
+      echo "Build.SourceBranch: $(Build.SourceBranch)"
+      echo "Build.SourceBranchName: $(Build.SourceBranchName)"
+    displayName: Build variables (in template)

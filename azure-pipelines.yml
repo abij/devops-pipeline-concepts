@@ -49,33 +49,44 @@ stages:
       
       - script: |
           echo "Build.ArtifactStagingDirectory: $(Build.ArtifactStagingDirectory)"
-          echo "Build.BuildId: $(Build.Id)"
+          echo "Build.BuildId: $(Build.BuildId)"
           echo "Build.Reason: $(Build.Reason)"
           echo "Build.SourceBranch: $(Build.SourceBranch)"
           echo "Build.SourceBranchName: $(Build.SourceBranchName)"
-          
         displayName: Build variables (not in template)
+
+      - template: templates/steps-print-build-variables.yml
 
 - stage: s2
   displayName: Stage 2 job-types
   jobs:
   - job: j1
+    displayName: Type-Job
     steps:
-      - script: echo 'Hello world!'
+      # Jobs checkout source-code of the selected branch by default.
+      # Jobs do not download pipline artifacts by default.
+      
+      # Note: restarting a job will point to the same commit in the branch!
+      - script: echo 'Jobs checkout code' && ls -lr .
+        displayName: 'Run a one-line script'
 
   - deployment: d2
-    displayName: Deployment 2
-    # Input is a string, but is linked to a Pipeline Environment, this is auto created if the environment does not exist
+    displayName: Type-Deployment
+    
+    # Type: Deployment is tighly coupled to an environment, defined as a string.
+    # Although it a string, but is linked to a Pipeline Environment.
     # Configure the enviroment to:
-    # - Check for approvals
-    # - Limit deployments to specific branches (e.g. only from main/release)
-    # - Lock environment to prevent other concurrent deployments
-    # 
+    # - Approvals: Single or multiple groups/individuals who all must approve. (no order, nr of people)
+    # - Branch Control: Limit access to specific branches (e.g. only from main/release) optionally check for Branch Policy.
+    # - Exclusive Lock: block concurrent Stages in any other pipeline with a deployment to the same environment.
+    # - Business Hours: Limit access within specified timeframe.
     environment: 'example-env1'
     strategy:
       runOnce:
         deploy:
           steps:
+          # Deployments do NOT checkout code.
+          # Deployments download 
           - script: echo 'Deploying...'
           - script: echo 'Deployed!'
 
@@ -87,6 +98,7 @@ stages:
 
   jobs:
   - job: j1
+    displayName: Serverless tasks
     steps:
     - task: Delay@1
       displayName: 'Delay 1 minute'
