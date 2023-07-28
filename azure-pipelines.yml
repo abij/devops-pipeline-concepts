@@ -98,7 +98,7 @@ stages:
     steps:
     - checkout: none  # skip checkout
     - script: |
-        # Note: taks 'name' is required for referencing output variables in other jobs!.
+        # Note: task 'name' is required for referencing output variables in other jobs!.
 
         echo "##vso[task.setvariable variable=var1_no_output]this is usable ONLY in this Job!"
         echo "##vso[task.setvariable variable=var2_is_output;isOutput=true]This can by used in all jobs that dependsOn this stage!"
@@ -124,6 +124,17 @@ stages:
         echo "  var4: $(var4_no_output_is_readonly)"
       displayName: Show vars (same job)
 
+  - deployment: d1
+    displayName: Set variables (d1)
+    environment: 'example-env1'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: echo "##vso[task.setvariable variable=var5;isOutput=true]Created inside a type-Deployment"
+            name: task_vars
+            displayName: Set task_vars.var5 (deployment)
+
   - job: j4
     displayName: Get Variabled (dependsOn j3)
     dependsOn: j3   # dependsOn is required to get output variables from other jobs.
@@ -133,12 +144,15 @@ stages:
         value: $[ dependencies.j3.outputs['task_vars.var1_no_output'] ]
       - name: var2_is_output
         value: $[ dependencies.j3.outputs['task_vars.var2_is_output'] ]
+      - name: var5
+        value: $[ dependencies.d1.outputs['task_vars.var5'] ]
 
     steps:
       - checkout: none  # skip checkout
       - script: |
           echo "  var1_no_output: $(var1_no_output)  (empty because isOutput=false)"
           echo "  var2_is_output: $(var2_is_output)"
+          echo "  var5: $(var2_is_output)   (from deployment)"
         displayName: Show vars (future job)
 
 
@@ -149,6 +163,7 @@ stages:
 
   variables:
     var2: $[stageDependencies.s1.j3.outputs['task_vars.var2_is_output']]
+    var5: $[stageDependencies.s1.d1.outputs['d1.task_vars.var5']]
 
   jobs:
   - job: j1
@@ -157,6 +172,7 @@ stages:
       - checkout: none  # skip checkout
       - script: |
           echo "  var2: $(var2)"
+          echo "  var5: $(var5) (note: type-deployment: repead the JobName!)"
         displayName: Show vars (future stage)
 
 - stage: s2a
