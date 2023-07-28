@@ -1,0 +1,77 @@
+# Example Azure DevOps pipeline with multiple examples embedded.
+
+# The key concepts are explained here: https://learn.microsoft.com/azure/devops/pipelines/get-started/key-pipelines-concepts
+
+# Using the default filename 'azure-pipelines.yml' will auto-register the pipeline in Azure DevOps.
+# If you want to use a different filename, you will need to register the pipeline manually.
+
+# When to run the pipeline.
+trigger: none
+
+# Inputs from the UI, note parameters have types.
+parameters:
+  - name: p1string
+    displayName: String parameter
+    type: string
+  - name: p2bool
+    displayName: Boolean parameter
+    type: boolean
+  - name: p3int
+    displayName: Integer parameter
+    type: int
+
+# Set the default pool for all stages and jobs
+pool:
+  # Use MS-hosted agents: https://learn.microsoft.com/azure/devops/pipelines/agents/hosted  
+  # Installed Software: https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md
+  vmImage: 'ubuntu-latest'  # other example: 'windows-latest'
+
+
+stages:
+- stage: s1
+  displayName: Stage 1 variables
+  jobs:
+  - job: j1
+
+- stage: s2
+  displayName: Stage 2 job-types
+  jobs:
+  - job: j1
+    steps:
+      - script: echo 'Hello world!'
+
+  - deployment: d2
+    displayName: Deployment 2
+    # Input is a string, but is linked to a Pipeline Environment, this is auto created if the environment does not exist
+    # Configure the enviroment to:
+    # - Check for approvals
+    # - Limit deployments to specific branches (e.g. only from main/release)
+    # - Lock environment to prevent other concurrent deployments
+    # 
+    environment: 'example-env1'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: echo 'Deploying...'
+          - script: echo 'Deployed!'
+
+- stage: s2
+  displayName: Stage 2 serverless
+
+    # https://learn.microsoft.com/azure/devops/pipelines/process/phases?view=azure-devops&tabs=yaml#agentless-tasks
+  pool: server 
+
+  jobs:
+  - job: j1
+    steps:
+    - task: Delay@1
+      displayName: 'Delay 1 minute'
+      inputs:
+        delayForMinutes: '1'
+    
+    - task: ManualValidation@0
+      inputs:
+        notifyUsers: '' # [orgname]\group name
+        instructions: 'Resume or reject based on your descicion'
+        onTimeout: 'resume' # Default: reject.
