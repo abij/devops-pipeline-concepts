@@ -93,7 +93,7 @@ stages:
       displayName: User-defined variables
 
   - job: j3
-    displayName: Set variables
+    displayName: Set variables (j3)
     steps:
     - script: |
         # Note: taks 'name' is required for referencing output variables in other jobs!.
@@ -102,12 +102,16 @@ stages:
         echo "##vso[task.setvariable variable=var2_is_output;isOutput=true]This can by used in all jobs that dependsOn this stage!"
         echo "##vso[task.setvariable variable=var3_no_output_is_secret;iSsecret=true]this is never shown in the logs!"
         echo "##vso[task.setvariable variable=var4_no_output_is_readonly;isreadonly=true]this value is immutable."
-        echo "##vso[task.setvariable variable=var4_no_output_is_readonly;isreadonly=true]or was it mutalbe?."
         
         # After this task the variables are available:
         echo "$(var1_no_output)" # no output.
       name: task_vars
       displayName: Set variables
+
+    - script: echo "##vso[task.setvariable variable=var4_no_output_is_readonly;isreadonly=true]or was it mutalbe?."
+      displayName: Try to update readonly
+      failOnStderr: false
+      continueOnError: true
 
     - script: |
         echo "How to reference variables:"
@@ -119,7 +123,7 @@ stages:
       displayName: Show vars (same job)
 
   - job: j4
-    displayName: Future job
+    displayName: Get Variabled (dependsOn j3)
     dependsOn: j3   # dependsOn is required to get output variables from other jobs.
 
     variables:
