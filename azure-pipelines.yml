@@ -91,14 +91,14 @@ stages:
           - script: echo 'Deployed!'
 
 - stage: s3
-  displayName: Stage 3 serverless
+  displayName: Stage 3 Agentless
 
     # https://learn.microsoft.com/azure/devops/pipelines/process/phases?view=azure-devops&tabs=yaml#agentless-tasks
   pool: server 
 
   jobs:
   - job: j1
-    displayName: Serverless tasks
+    displayName: No Agent
     steps:
     - task: Delay@1
       displayName: 'Delay 1 minute'
@@ -108,8 +108,9 @@ stages:
     - task: ManualValidation@0
       inputs:
         notifyUsers: '' # [orgname]\group name
-        instructions: 'Resume or reject based on your descicion'
+        instructions: 'This text describes actions for users, to decide: resume or reject, not this is NOT safe-guard. Because enyone can approve!'
         onTimeout: 'resume' # Default: reject.
+        timeoutInMinutes: 2
 
 - stage: s4
   displayName: Stage 4 git
@@ -118,8 +119,19 @@ stages:
     displayName: Git tasks
     steps:
     - checkout: self
-      # Checkout the source code of the current pipeline.
-      # Note: this is not the same as the default checkout of a job.
-      # Note: this is not the same as the checkout of a deployment.
-      # Note: this is not the same as the checkout of a template.
-      # Note: this is not the same a
+      persistCredentials: true  # allow 
+    
+    - script: sed -Ei 's/(Auto-update by pipeline:).*/\1 last runid $(Build.BuildId)/g' README.md
+      displayName: Update README
+
+    - script: |
+        # Auto update readme
+        sed -Ei 's/(Auto-update by pipeline:).*/\1 last runid $(Build.BuildId)/g' README.md
+
+        git checkout $(Build.SourceBranch)
+        git config --global user.email ""
+        git config --global user.name "Azure DevOps"
+        git add README.md
+        git commit -m "DevOps: update readme [skip ci]"
+        git push
+      displayName: 'Git commit and push'
