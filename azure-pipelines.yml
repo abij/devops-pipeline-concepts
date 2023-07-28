@@ -249,7 +249,7 @@ stages:
         deploy:
           steps:
           # Deployments do NOT checkout code.
-          # Deployments download (all) pipeline artirifacts by default.
+          # Deployments download (all) pipeline artifacts by default.
           - script: |
               echo "actifact_name: $(artifact_name)"
               ls -lr $(Pipeline.Workspace)
@@ -288,7 +288,7 @@ stages:
 
   jobs:
   - job: j1
-    displayName: Git tasks
+    displayName: Update README
     steps:
     - checkout: self
       persistCredentials: true  # allow push
@@ -302,9 +302,10 @@ stages:
         git config --global user.name "Azure DevOps"
       displayName: 'Git config'
       
-    - script: sed -Ei 's/(Auto-update by pipeline:).*/\1 last runid $(Build.BuildId)/g' README.md
-      displayName: Update README
+    - script: sed -Ei 's/(Auto-update by pipeline:).*/\1 last buildId $(Build.BuildId)/g' README.md
+      displayName: Set buildId README
 
+    # Note: [skip-ci] in the commit message will prevent a new build to be triggered.
     - script: | 
         git add README.md
         git commit -m "DevOps: update readme [skip ci]" 
@@ -323,22 +324,8 @@ stages:
       displayName: 'Azure CLI (default)'
       inputs:
         azureSubscription: $(azure_service_connection)
-        scriptType: 'pscore'
+        scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          # looks at the verbose output, before this command
+          echo "What are the subscription this ServiceConnection have access to?"
           az account show -o table
-
-    - task: AzureCLI@2
-      displayName: 'Azure CLI (supressed)'
-      inputs:
-        azureSubscription: $(azure_service_connection)
-        scriptType: 'pscore'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          # reset output to default
-          $env:AZURE_CORE_OUTPUT="json"
-
-          az account show
-      env:
-        AZURE_CORE_OUTPUT: none # suppress initial output
