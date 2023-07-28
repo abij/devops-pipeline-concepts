@@ -16,7 +16,9 @@ stages:
       value: 'value-true'
     ${{ else }}: 
       value: 'value-false'
-  - name: test-overwrite
+  - name: runtimeVarInTemplate
+    value: $[variables['var1-in-group']] # key inside group: lookup-variables
+  - name: overwriteVar
     value: 'stage level'
 
   jobs:
@@ -56,7 +58,7 @@ stages:
     displayName: User-defined variables
     
     variables:
-    - name: test-overwrite
+    - name: overwriteVar
       value: 'j2 level'
 
     steps:
@@ -66,7 +68,11 @@ stages:
         echo "  staticVar: $(staticVar)"
         echo "  runtimeVar (from the group): $(runtimeVar)"
         echo "  compileVar: $(compileVar)"
-        echo "  test-overwrite: $(test-overwrite)"
+        echo "  overwriteVar: $(overwriteVar)"
+        echo "  isMain: $(isMain)"
+        echo "  isTag: $(isTag)"
+        echo "  isPR: $(isPR)"
+        echo "  isScheduled: $(isScheduled)"
       displayName: User-defined variables
 
   - job: j3

@@ -24,7 +24,7 @@ variables:
 - group: lookup-variables
 - name: runtimeVar
   value: $[variables['var1-in-group']] # key inside group: lookup-variables
-- name: test-overwrite
+- name: overwriteVar
   value: 'top level'
 - name: azure_service_connection
   value: arm-example-conn
