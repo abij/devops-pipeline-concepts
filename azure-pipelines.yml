@@ -55,19 +55,19 @@ variables:
 
 # Stages are the major divisions in a pipeline.
 stages:
-{{ if eq(parameters.variables, true) }}
+{{ if eq(parameters.variables, true) }}:
   - template: templates\1-variables.yml
 {{ end }}
-{{ if eq(parameters.job_types, true) }}
+{{ if eq(parameters.job_types, true) }}:
   - template: templates\2-job-types.yml
 {{ end }}
-{{ if eq(parameters.agentless, true) }}
+{{ if eq(parameters.agentless, true) }}:
   - template: templates\3-agentless.yml
 {{ end }}
-{{ if eq(parameters.git, true) }}
+{{ if eq(parameters.git, true) }}:
   - template: templates\4-git.yml
 {{ end }}
-{{ if eq(parameters.azure_cli, true) }}
+{{ if eq(parameters.azure_cli, true) }}:
   - template: templates\5-azure-cli.yml
 {{ end }}
 
