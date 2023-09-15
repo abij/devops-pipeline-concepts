@@ -1,6 +1,5 @@
-# Example Azure DevOps pipeline with multiple examples embedded.
-
-# The key concepts are explained here: https://learn.microsoft.com/azure/devops/pipelines/get-started/key-pipelines-concepts
+# Azure DevOps pipeline with multiple examples embedded.
+# Pipeline key concepts are explained here: https://learn.microsoft.com/azure/devops/pipelines/get-started/key-pipelines-concepts
 
 # Using the default filename 'azure-pipelines.yml' will auto-register the pipeline in Azure DevOps.
 # If you want to use a different filename, you will need to register the pipeline manually.
@@ -8,6 +7,30 @@
 # When to run the pipeline.
 trigger: 
 - main
+
+
+# Optionally Run examples:
+parameters:
+  - name: variables
+    displayName: Run variables examples
+    type: boolean
+    default: false
+  - name: job_types
+    displayName: Run Job types examples
+    type: boolean
+    default: false
+  - name: agentless
+    displayName: Run Agentless examples
+    type: boolean
+    default: false
+  - name: git
+    displayName: Run Git examples
+    type: boolean
+    default: false
+  - name: azure_cli
+    displayName: Run Azure CLI examples
+    type: boolean
+    default: false
 
 
 # Default pool for all stages and jobs
@@ -32,8 +55,23 @@ variables:
 
 # Stages are the major divisions in a pipeline.
 stages:
-- template: templates\1-variables.yml
-- template: templates\2-job-types.yml
-- template: templates\3-agentless.yml
-- template: templates\4-git.yml
-- template: templates\5-azure-cli.yml
+{{ if eq(parameters.variables, true) }}
+  - template: templates\1-variables.yml
+{{ end }}
+{{ if eq(parameters.job_types, true) }}
+  - template: templates\2-job-types.yml
+{{ end }}
+{{ if eq(parameters.agentless, true) }}
+  - template: templates\3-agentless.yml
+{{ end }}
+{{ if eq(parameters.git, true) }}
+  - template: templates\4-git.yml
+{{ end }}
+{{ if eq(parameters.azure_cli, true) }}
+  - template: templates\5-azure-cli.yml
+{{ end }}
+
+# TODO: Add examples for the following:
+# Resources: https://docs.microsoft.com/azure/devops/pipelines/process/resources?view=azure-devops&tabs=schema
+# Logging & Extensions: https://docs.microsoft.com/azure/devops/pipelines/scripts/logging-commands
+# Conditions: https://docs.microsoft.com/azure/devops/pipelines/process/conditions?view=azure-devops&tabs=yaml
