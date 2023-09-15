@@ -211,7 +211,7 @@ stages:
 
 - stage: s1b
   displayName: Get Variables (s1b)
-  dependsOn: s1
+  dependsOn: s1a
 
   variables:
     # For jobs: stageDependencies.[STAGE].[JOB].outputs['[TASK].[VAR]']
