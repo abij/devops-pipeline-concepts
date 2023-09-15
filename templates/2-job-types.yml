@@ -1,7 +1,7 @@
 stages:
 - stage: s2a
   displayName: Artifacts (s2a)
-  dependsOn: []  # start immediately
+  dependsOn: []
   jobs:
   - job: j1
     displayName: Create actifact

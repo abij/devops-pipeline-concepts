@@ -1,3 +1,6 @@
+# This pipeline template shows how you can use variables in Azure DevOps.
+# Stage1a defines a couple of variables, some are static, some are dynamic.
+# Stage1b dependsOn Stage1a and tries to use it's user defined variables.
 
 parameters:
   - name: boolVar
@@ -5,10 +8,11 @@ parameters:
     default: true
 
 stages:
-- stage: s1
-  displayName: Variables (s1)
+- stage: s1a
+  displayName: Variables (s1a)
 
   variables:
+  - group: lookup-variables
   - name: staticVar
     value: 'static value'
   - name: compileVar
@@ -24,17 +28,28 @@ stages:
   jobs:
   - job: j1
     displayName: Predefined Variables
-    # https://learn.microsoft.com/azure/devops/pipelines/build/variables
+    # Each job has a set of predefined variables, most of them are for internal use.
+    # The variables are automatically set by the system and read-only.
+    # They are exposed through the environmentexpect for the System.AccessToken.
+    #
+    # Most important vars:
+    # ---------------------------------------------
+    # Pipeline.Workspace (/home/vsts/work/1)
+    # Build.ArtifactStagingDirectory (/home/vsts/work/1/a)
+    #
+    # Docs: https://learn.microsoft.com/azure/devops/pipelines/build/variables
+
     steps:
     - checkout: none  # skip checkout
     
     - script: |
-        echo "Default location: $(pwd)"
+        echo "Default location: $(pwd) same as $(System.DefaultWorkingDirectory)"
+        echo "The one exception, not exposed : $SYSTEM_ACCESSTOKEN"
         echo "Current environment variables:"
         env | sort
-      displayName: Environment variables
+      displayName: Print All
       env:
-        SOME_EXTRA_VAR: 'some extra value'
+        SOME_EXTRA_VAR: 'All values are avaiable through ENV, expect one.'
 
     - script: |
         echo "Pipeline.Workspace: $(Pipeline.Workspace) (same as Agent.BuildDirectory)"
@@ -44,6 +59,7 @@ stages:
         echo "Agent.TempDirectory: $(Agent.TempDirectory) (cleaned after each job)"
       displayName: Agent variables
     
+   
     - script: |
         echo "Build.ArtifactStagingDirectory: $(Build.ArtifactStagingDirectory)"
         echo "Build.BuildId: $(Build.BuildId)"
@@ -53,14 +69,31 @@ stages:
         echo "Note: a branch /feature/sneaky/main is also called main!"
       displayName: Build variables
 
+    # The System.AccessToken impersonates the identity "ProjectName Build Service (OrganisationName)".
+    # Each job on any agent has access to this token.
+    # In Azure DevOps you can grant/revoke extra permissions to this account.
+    # By default it can do many things within the project, but not outside.
+    # An example of not granted permission by default is to queue builds, but this can be granted.
+    - bash: echo "Able to use the $SYSTEM_ACCESSTOKEN"
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+      displayName: Special SystemAccess token
+
   
   - job: j2
     displayName: User-defined variables
-    
+    # Variables can be defined at Root, Stage and Job level.
+    # Variables values are always String-type.
+    #
+    # Using variables:
+    #   $(var) macro syntax is evaluated at runtime.
+    #   $[ variables.var ] is evaluated at runtime.
+    #   ${{ variables.var }} is evaluated at compile time.
+
     variables:
     - name: overwriteVar
       value: 'j2 level'
-
+    
     steps:
     - checkout: none  # skip checkout
     - script: |
@@ -80,7 +113,27 @@ stages:
     steps:
     - checkout: none  # skip checkout
     
-    # Note: task 'name' is required for referencing output variables in other jobs!.
+    # Here we set variables, to be used in the next task and jobs.
+    # Setting variables is one of the most usefull options to glue functionality together.
+    #
+    # Examples of variables to pass between tasks/jobs: 
+    #  - terraform plan has changes
+    #  - filename of the created artifact
+    #  - version number of the created artifact
+    #  - location of a downloaded file
+    #
+    # The syntax has a couple of options and is wrapped in ##vso[task.setvariable ... ]value
+    #   variable:   name of the variable
+    #   isOutput:   (default: false) (true: variable can be used in dependent jobs)
+    #   isSecret:   (default: false) (true: value redacted in the logs)
+    #   isReadOnly: (default: false) (true: cannot be updated)
+    #
+    # Let make some variables:
+    #   var1_no_output: this variable is not output, so it is not available in other jobs.
+    #   var2_is_output: this variable is output, so it is available in other jobs.
+    #   var3_no_output_is_secret: it's value is always.
+    #   var4_no_output_is_readonly: it's value is immutable.
+
     - script: |
         echo "##vso[task.setvariable variable=var1_no_output]this is usable ONLY in this Job!"
         echo "##vso[task.setvariable variable=var2_is_output;isOutput=true]This can by used in all jobs that dependsOn this stage!"
@@ -92,11 +145,13 @@ stages:
       name: task_vars
       displayName: Set variables
 
+    # Whats happens when you update a readOnly variable?
     - script: echo "##vso[task.setvariable variable=var4_no_output_is_readonly]is it mutable?."
       displayName: Try to update readonly
       failOnStderr: false
       continueOnError: true
     
+    # You can also create variables inside any other code, example Python using print:
     - task: PythonScript@0
       displayName: Python variable
       inputs:
@@ -116,6 +171,7 @@ stages:
       displayName: Show vars (same job)
 
 
+  # var6_in_deployment is created in type deployment, instead of a 'normal' job
   - deployment: d1
     displayName: Set variables (d1)
     environment: 'example-env1'
@@ -124,29 +180,33 @@ stages:
         deploy:
           steps:
           - script: |
-              echo "##vso[task.setvariable variable=var6;isOutput=true]Created inside a type-Deployment"
-              echo "Created output variable 'var6' in a deployment, this is referenced differently!"
+              echo "##vso[task.setvariable variable=var6_in_deployment;isOutput=true]Created inside a type-Deployment"
+              echo "Created output variable 'var6_in_deployment' in a deployment, this is referenced differently!"
             name: task_vars
             displayName: Set variable (deployment)
 
+  # Referencing variables:
+  #
+  # To be able to read the variables from previous jobs, you need to add a dependsOn.
   - job: j4
     displayName: Get Variabled (dependsOn j3)
     dependsOn: j3   # dependsOn is required to get output variables from other jobs.
 
     variables:
-      - name: var1_no_output  # note: isOutput=false, therefor this is an empty variable.
+      # val1 has been created with "isOutput=false", therefor this is an empty variable, no error.
+      - name: var1_no_output  
         value: $[ dependencies.j3.outputs['task_vars.var1_no_output'] ]
       - name: var2_is_output
         value: $[ dependencies.j3.outputs['task_vars.var2_is_output'] ]
-      - name: var6
-        value: $[ dependencies.d1.outputs['task_vars.var6'] ]
+      - name: var6_in_deployment
+        value: $[ dependencies.d1.outputs['task_vars.var6_in_deployment'] ]
 
     steps:
     - checkout: none  # skip checkout
     - script: |
         echo "  var1_no_output: $(var1_no_output)  (empty because isOutput=false)"
         echo "  var2_is_output: $(var2_is_output)"
-        echo "  var6: $(var2_is_output)   (from deployment)"
+        echo "  var6_in_deployment: $(var2_is_output)   (from deployment)"
       displayName: Show vars (future job)
 
 - stage: s1b
@@ -155,14 +215,14 @@ stages:
 
   variables:
     # For jobs: stageDependencies.[STAGE].[JOB].outputs['[TASK].[VAR]']
-    job_variable: $[stageDependencies.s1.j3.outputs['task_vars.var2_is_output']]
+    job_variable: $[stageDependencies.s1a.j3.outputs['task_vars.var2_is_output']]
     # Note: deployment reference repeat the name (d1)!
     #   stageDependencies.[STAGE].[DEPLOYMENT].outputs['[DEPLOYMENT].[TASK].[VAR]']
-    deployment_var: $[stageDependencies.s1.d1.outputs['d1.task_vars.var6']]
+    deployment_var: $[stageDependencies.s1a.d1.outputs['d1.task_vars.var6_in_deployment']]
 
   jobs:
   - job: j1
-    displayName: Get Variables (s1.j3)
+    displayName: Get Variables (s1a.j3)
     steps:
       - checkout: none  # skip checkout
       - script: |
