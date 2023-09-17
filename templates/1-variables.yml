@@ -44,7 +44,8 @@ stages:
     
     - script: |
         echo "Default location: $(pwd) same as $(System.DefaultWorkingDirectory)"
-        echo "The one exception, not exposed : $SYSTEM_ACCESSTOKEN"
+        echo "The one exception, not exposed : $SYSTEM_ACCESSTOKEN << Nothing here in the logs." 
+        echo ""
         echo "Current environment variables:"
         env | sort
       displayName: Print All

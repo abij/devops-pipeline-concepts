@@ -1,7 +1,9 @@
-stages:
-# In this stage we use a server pool, which is a pool of agents that are not hosted by Microsoft.
+# In this template we use a pool type: server.
+# which is a pool of agents that are not hosted by Microsoft.
 # Some tasks require the pool: server, more info 
 # https://learn.microsoft.com/azure/devops/pipelines/process/phases?view=azure-devops&tabs=yaml#agentless-tasks
+
+stages:
 - stage: s3
   displayName: Agentless (s3)
   dependsOn: []  # start immediately

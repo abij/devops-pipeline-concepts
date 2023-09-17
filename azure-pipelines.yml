@@ -4,9 +4,10 @@
 # Using the default filename 'azure-pipelines.yml' will auto-register the pipeline in Azure DevOps.
 # If you want to use a different filename, you will need to register the pipeline manually.
 
-# When to run the pipeline.
-trigger: 
-- main
+# Triggers: when to automatically run the pipeline.
+# This support Continuous Integration (CI) and Continuous Delivery (CD) scenarios.
+# We will manually trigger the pipeline from Azure DevOps
+trigger: none  
 
 
 # Optionally Run examples:
@@ -33,18 +34,23 @@ parameters:
     default: false
 
 
-# Default pool for all stages and jobs
+# Root pool selects the default for all stages and jobs
 pool:
-  # Use MS-hosted agents: https://learn.microsoft.com/azure/devops/pipelines/agents/hosted  
-  # Installed Software: https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md
-  vmImage: 'ubuntu-latest'  # other example: 'windows-latest'
+  # Uses the MS-hosted agents: https://learn.microsoft.com/azure/devops/pipelines/agents/hosted  
+  # - Installed Software: https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md
+  # other hosted agents: 'windows-latest' or 'macOS-latest'
+  #
+  # Alternative use a 'self-hosted' agent inside your own network or with custom software installed.
+  vmImage: 'ubuntu-latest'  
 
 
 # Various types of variables can be defined here.
 variables:
+  # Pointer to a local file:
 - template: templates\global-vars.yml
-# group: https://docs.microsoft.com/azure/devops/pipelines/library/variable-groups
+  # Pointer to a pipeline library (variable-group) in DevOps.
 - group: lookup-variables
+  # Inline variables:
 - name: runtimeVar
   value: $[variables['var1-in-group']] # key inside group: lookup-variables
 - name: overwriteVar
@@ -54,6 +60,8 @@ variables:
 
 
 # Stages are the major divisions in a pipeline.
+# Each stage can have multiple jobs.
+# Stage is a block in the DevOps UI.
 stages:
 - ${{ if eq(parameters.variables, true) }}:
   - template: templates\1-variables.yml
