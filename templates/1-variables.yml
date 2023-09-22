@@ -267,6 +267,9 @@ stages:
     steps:
     - checkout: none  # skip checkout
 
+    - bash: env | sort > $(Build.ArtifactStagingDirectory)\sorted_env_vars.txt
+      displayName: Dummy file
+
     # Problem: failing artifact creation.
     - publish: $(Build.ArtifactStagingDirectory)
       artifact: mustbe_unique  # <-- fails on retry job.
@@ -286,7 +289,7 @@ stages:
         echo "  Build.BuildId: $(Build.BuildId)"
         echo "  System.JobAttempt: $(system.jobattempt)"
         
-        name="artifact-$(Build.BuildId)#$(system.jobattempt)"
+        name="env#$(system.jobattempt)-$(Build.BuildId)"
         echo "  name: $name"
         echo "##vso[task.setvariable variable=name;isOutput=true]$name"
       displayName: Show vars (future stage)
@@ -298,7 +301,7 @@ stages:
       displayName: Artifact_unique
 
     - bash: |
-        [ $(system.jobattempt) -eq 0 ] && echo "##vso[task.logissue type=error]You can manually restart."
+        [ $(system.jobattempt) -eq 1 ] && echo "##vso[task.logissue type=error]You can manually restart."
 
         echo "After second try, no failure..."
         echo "Later stages and jobs can link to the artifact name using the variable reference: s2.j1.artifact.name"

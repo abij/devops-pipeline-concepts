@@ -55,6 +55,9 @@ stages:
     environment: 'example-env1'
     strategy:
       runOnce:
+        preDeploy:
+          steps:
+            - man
         deploy:
           steps:
           # Deployments do NOT checkout code.
