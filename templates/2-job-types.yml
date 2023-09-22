@@ -1,18 +1,24 @@
+# This template demonstrates the job types.
+#
+# Key points for types:
+# - Job usually depend on source code to build, test and publish.
+# - Deployment usually depend on (pipeline) artifacts to deploy apps or infrastructure.
+
+
 stages:
 - stage: s2a
-  displayName: Artifacts (s2a)
+  displayName: Preperation (s2a)
   dependsOn: []
   jobs:
   - job: j1
     displayName: Create actifact
     steps:
-    # Pipeline artifacts have to be unique.
-    # To support restartability, make the name unique each run.
+    # Pipeline artifacts have to be unique, to support restartability, make the name unique each run.
     - script: |
         name="artifact1#$(System.JobAttempt)-$(Build.BuildId)"
-        echo "##vso[task.setvariable variable=value;isOutput=true]$name"
-        echo "created variable 'value=$name'"
-      name: set_artifact_name
+        echo "##vso[task.setvariable variable=name;isOutput=true]$name"
+        echo "created variable 'name=$name'"
+      name: artifact
       displayName: Unique artifact
     
     - task: CopyFiles@2
@@ -22,7 +28,7 @@ stages:
         targetFolder: $(Build.ArtifactStagingDirectory)
 
     - publish: $(Build.ArtifactStagingDirectory)
-      artifact: $(set_artifact_name.value)
+      artifact: $(artifact.name)
       displayName: Publish artifact
 
 - stage: s2b
@@ -41,13 +47,16 @@ stages:
 
   - deployment: d2
     displayName: Type-Deployment
+    # defaults depends on previous stage, otherwise explicit define using dependsOn: [s2a]
     
     variables:
-      artifact_name: $[stageDependencies.s2a.j1.outputs['set_artifact_name.value']]
+      artifact_name: $[stageDependencies.s2a.j1.outputs['artifact.name']]
 
-    # Type: Deployment is tighly coupled to an environment, defined as a string.
-    # Although it a string, but is linked to a Pipeline Environment.
-    # Configure the enviroment to:
+    # Type: Deployment is coupled to an environment, defined as a string.
+    # Although it a string, it is linked to a Pipeline Environment.
+    # The environment is defined in the pipeline, and can be configured in the UI.
+    #
+    # Configure the environment to:
     # - Approvals: Single or multiple groups/individuals who all must approve. (no order, nr of people)
     # - Branch Control: Limit access to specific branches (e.g. only from main/release) optionally check for Branch Policy.
     # - Exclusive Lock: block concurrent Stages in any other pipeline with a deployment to the same environment.
@@ -55,14 +64,18 @@ stages:
     environment: 'example-env1'
     strategy:
       runOnce:
-        preDeploy:
-          steps:
-            - man
+        # preDeploy: initialize resources before the deployment starts.
         deploy:
           steps:
-          # Deployments do NOT checkout code.
+          # Deployments do NOT checkout code by default.
           # Deployments download (all) pipeline artifacts by default.
           - script: |
               echo "actifact_name: $(artifact_name)"
               ls -lr $(Pipeline.Workspace)
+            displayName: 'Run a one-line script'
+        # routeTraffic: update routing rules to send traffic to this version.
+        # postRouteTraffic: monitor health after updated version
+        # on:
+        #  failure: perform a rollback to the previous version.
+        #  success: clean-up actions.
 

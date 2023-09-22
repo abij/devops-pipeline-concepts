@@ -1,3 +1,18 @@
+# This template will interact with GIT.
+#
+# In this example we update the README.md file.
+# The file is updated with the buildId of the current build.
+# The build will create a new commit and push it to the remote repository.
+# Important to include in commit message: [skip ci], to prevent a new build to be triggered.
+# 
+# Other examples to commit and push code:
+#   - After pre-commit hooks (only: auto fixed issues)
+#   - Source code formatting
+#   - Terraform fmt
+#   - Automatic changelog
+#   - Generated documentation
+#   - Automatic bump versioning
+
 stages:
 - stage: s4
   displayName: Git (s4)
@@ -6,22 +21,10 @@ stages:
   jobs:
   - job: j1
     displayName: Update README
-    # In this example we use GIT to update the README.md file.
-    # The file is updated with the buildId of the current build.
-    # The build will create a new commit and push it to the remote repository.
-    # Important to include in commit message: [skip ci], to prevent a new build to be triggered.
-    # 
-    # Other examples to commit and push code:
-    #   - After pre-commit hooks (only: auto fixed issues)
-    #   - Source code formatting
-    #   - Terraform fmt
-    #   - Automatic changelog
-    #   - Genereated documentation
-    #   - Automatic bump versioning
 
     steps:
     # 'self' refers to the repo which contains the pipeline.yml file.
-    # You can template this file to other repositories.
+    # You can reference this template from other repositories.
     - checkout: self
       persistCredentials: true  # allow build agent to push code.
       fetchDepth: 0  
@@ -33,12 +36,13 @@ stages:
         git checkout $(Build.SourceBranchName)
         git config --global user.email "no-reply@azure-devops.com"
         git config --global user.name "Azure DevOps"
-      displayName: 'Git config'
+      displayName: Git config
       
     - script: sed -Ei 's/(Auto-update by pipeline:).*/\1 last buildId $(Build.BuildId)/g' README.md
       displayName: Set buildId README
 
-    # Note: [skip-ci] in the commit message will prevent a new build to be triggered.
+    # Note: [skip ci] in the commit message will prevent a new build to be triggered.
+    # https://learn.microsoft.com/azure/devops/pipelines/scripts/git-commands?view=azure-devops&tabs=yaml#how-do-i-avoid-triggering-a-ci-build-when-the-script-pushes
     - script: | 
         git add README.md
         git commit -m "DevOps: update readme [skip ci]" 
