@@ -261,24 +261,26 @@ stages:
     # This is a problem when you have a pipeline with multiple jobs and one of them fails.
     # The pipeline will fail and you cannot restart the pipeline, because the artifact already exists.
 
-    retries: 1  # On purpose: restart after first failure in last step.
+    # Demonstrates problem and solution.
+    # Check in the DevOps UI the artifact tab, you will see the artifacts created.
 
     steps:
     - checkout: none  # skip checkout
 
-    # Demonstrate failing artifact creation:
+    # Problem: failing artifact creation.
     - publish: $(Build.ArtifactStagingDirectory)
-      artifact: mustbe_unique
+      artifact: mustbe_unique  # <-- fails on retry job.
       displayName: Artifact
-      continueOnError: true
+      continueOnError: true    # suppressed for demo purposes.
 
     - publish: $(Build.ArtifactStagingDirectory)
-      artifact: mustbe_unique
+      artifact: mustbe_unique  # <-- fails, always exists.
       displayName: Artifact_fail
-      continueOnError: true
+      continueOnError: true    # suppressed for demo purposes.
 
     # Solution: predefine a unique name for the artifact.
     # After Job-restart a new artifact will be created.
+    # Pass artifact name as output variable to the next job.
     - bash: |
         echo "Create artifact name based on the buildId or system.jobattempt"
         echo "  Build.BuildId: $(Build.BuildId)"
@@ -296,7 +298,7 @@ stages:
       displayName: Artifact_unique
 
     - bash: |
-        [ $(system.jobattempt) -eq 0 ] && exit 1
+        [ $(system.jobattempt) -eq 0 ] && echo "##vso[task.logissue type=error]You can manually restart."
 
         echo "After second try, no failure..."
         echo "Later stages and jobs can link to the artifact name using the variable reference: s2.j1.artifact.name"
