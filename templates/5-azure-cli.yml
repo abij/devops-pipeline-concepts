@@ -1,4 +1,6 @@
-# 
+# This template demonstrates interaction with Azure cloud and AzureDevOps using the Azure-CLI.
+#
+# The AzureCLI is normally pre-installed on the agent.
 
 stages:
 - stage: s5
@@ -7,14 +9,29 @@ stages:
 
   jobs:
   - job: j1
-    displayName: show account
+    displayName: Azure-cloud
     steps:
+    - checkout: none
+
     - task: AzureCLI@2
       displayName: 'Azure CLI (default)'
       inputs:
         azureSubscription: $(azure_service_connection)
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
+        scriptType: bash
+        scriptLocation: inlineScript
         inlineScript: |
           echo "What are the subscription this ServiceConnection have access to?"
           az account show -o table
+
+  - job: j2
+    displayName: Azure-devops
+    steps:
+  
+    - bash: az devops configure --defaults organization=$(System.TeamFoundationCollectionUri) project=$(System.TeamProject) --use-git-aliases true
+      displayName: 'Set defaults'
+
+    - bash: |
+        az pipelines build list
+      displayName: 'Show pipelines'
+      env:
+        AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
