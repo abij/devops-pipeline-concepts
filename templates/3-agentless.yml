@@ -1,27 +1,49 @@
-# In this template we use a pool type: server.
-# which is a pool of agents that are not hosted by Microsoft.
-# Some tasks require the pool: server, more info 
+# This template demonstrates the special pool 'server' which is required for some tasks:
+#
+# - Delay@1
+# - ManualValidation@0
+# - InvokeRestApi@1
+# - InvokeFunctionApp@1
+# - AzureMonitor@1
+#
 # https://learn.microsoft.com/azure/devops/pipelines/process/phases?view=azure-devops&tabs=yaml#agentless-tasks
 
 stages:
 - stage: s3
   displayName: Agentless (s3)
-  dependsOn: []  # start immediately
+  dependsOn: []
 
+  # Stage level pool specifies the default for all it's jobs to 'server'.
+  # Maximum duration of a job is 30 days! (default: 60 minutes)
+  #
+  # For normal jobs the maximum timeout varies per agent-type:
+  # -   60 minutes (private)
+  # - 3600 minutes (public)
+  # - Forever self-hosted agents
+  #
+  # https://learn.microsoft.com/en-us/azure/devops/pipelines/process/phases?view=azure-devops&tabs=yaml#timeouts
   pool: server 
 
   jobs:
   - job: j1
     displayName: No agent tasks
     steps:
+
+    # Delay-task requires a pool: server
     - task: Delay@1
       displayName: 'Delay 1 minute'
       inputs:
         delayForMinutes: '1'
     
+    # Manual validation requires a pool: server.
+    #
+    # Note: This is NOT a safe-guard, any user can approve, but only some users get a notification.
+    # For strict approvals and checks use an Environment (see: 2-job-types).
+    # 
+    # https://learn.microsoft.com/azure/devops/pipelines/process/approvals?view=azure-devops
     - task: ManualValidation@0
       timeoutInMinutes: 1
       inputs:
-        notifyUsers: '' # [orgname]\group name
-        instructions: 'This text describes actions for users, to decide: resume or reject, not this is NOT safe-guard. Because enyone can approve. For a blocking-approval you must use an Environment with approvals & checks!'
+        notifyUsers: '' # An email or a group: [orgname]\group name
+        instructions: 'This text describes actions for users, to decide: resume or reject. For a blocking-approval you must use an Environment with approvals & checks!'
         onTimeout: 'resume' # Default: reject.

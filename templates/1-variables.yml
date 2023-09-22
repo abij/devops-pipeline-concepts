@@ -1,6 +1,12 @@
-# This pipeline template shows how you can use variables in Azure DevOps.
-# Stage1a defines a couple of variables, some are static, some are dynamic.
-# Stage1b dependsOn Stage1a and tries to use it's user defined variables.
+# This pipeline template shows how you can use variables in Azure DevOps pipeline.
+#
+# In this example explains:
+# - Different types of variables user and predefined.
+# - How to create variables in YAML and using runtime expressions.
+# - Special system.accesstoken valiable.
+# - Link variables between jobs and stages.
+# - Practical examples.
+
 
 parameters:
   - name: boolVar
@@ -11,10 +17,12 @@ stages:
 - stage: s1a
   displayName: Variables (s1a)
 
+# In contrast to the parameters, variables are ALWAYS string values.
   variables:
   - group: lookup-variables
   - name: staticVar
     value: 'static value'
+  # Value based on the template parameter.
   - name: compileVar
     ${{ if eq(parameters.boolVar, true) }}: 
       value: 'value-true'
@@ -24,6 +32,10 @@ stages:
     value: $[variables['var1-in-group']] # key inside group: lookup-variables
   - name: overwriteVar
     value: 'stage level'
+
+# Best practices:
+# - Use a nameing convention: example snakeCase.
+# - Use a group for all variables that are used in multiple pipelines.
 
   jobs:
   - job: j1
@@ -232,3 +244,56 @@ stages:
           echo "deployment_var: $(deployment_var) (replaced in compile time)"
           echo "deployment_var: $DEPLOYMENT_VAR   (through environment)"
         displayName: Show vars (future stage)
+
+
+- stage: s2
+  displayName: Practicle Examples (s2)
+
+  job: j1
+  displayName: Unique Artifacts
+  # Tip: create unique artifact names, this allow jobs to be restartable.
+  #
+  # Creating an artifact with the same name will fail the pipeline.
+  # This is a problem when you have a pipeline with multiple jobs and one of them fails.
+  # The pipeline will fail and you cannot restart the pipeline, because the artifact already exists.
+
+  retries: 1  # On purpose: restart after first failure in last step.
+
+  steps:
+  - checkout: none  # skip checkout
+
+  # Demonstrate failing artifact creation:
+  - publish: $(Build.ArtifactStagingDirectory)
+    artifact: mustbe_unique
+    displayName: Artifact
+    continueOnError: true
+
+  - publish: $(Build.ArtifactStagingDirectory)
+    artifact: mustbe_unique
+    displayName: Artifact_fail
+    continueOnError: true
+
+  # Solution: predefine a unique name for the artifact.
+  # After Job-restart a new artifact will be created.
+  - bash: |
+      echo "Create artifact name based on the buildId or system.jobattempt"
+      echo "  Build.BuildId: $(Build.BuildId)"
+      echo "  System.JobAttempt: $(system.jobattempt)"
+      
+      name="artifact-$(Build.BuildId)#$(system.jobattempt)"
+      echo "  name: $name"
+      echo "##vso[task.setvariable variable=name;isOutput=true]$name"
+    displayName: Show vars (future stage)
+    name: artifact
+
+  # Variable defiend with isOutput=true, therefor referencing must be prefixed with the task name.
+  - publish: $(Build.ArtifactStagingDirectory)
+    artifact: $(artifact.name)
+    displayName: Artifact_unique
+
+  - bash: |
+      [ $(system.jobattempt) -eq 0 ] && exit 1
+
+      echo "After second try, no failure..."
+      echo "Later stages and jobs can link to the artifact name using the variable reference: s2.j1.artifact.name"
+    displayName: Fail on first attempt

@@ -4,8 +4,9 @@
 # Using the default filename 'azure-pipelines.yml' will auto-register the pipeline in Azure DevOps.
 # If you want to use a different filename, you will need to register the pipeline manually.
 
-# Triggers: when to automatically run the pipeline.
+# Triggers are used to automatically run the pipeline.
 # This support Continuous Integration (CI) and Continuous Delivery (CD) scenarios.
+#
 # We will manually trigger the pipeline from Azure DevOps
 trigger: none  
 

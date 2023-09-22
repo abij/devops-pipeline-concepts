@@ -1,3 +1,10 @@
+# Example usage of global variables
+# To be reused in multiple pipelines inside the same repository.
+#
+# They are linked using template reference syntax:
+# variables:
+#  - template: templates/global-vars.yml
+
 variables:
   isMain:      ${{ eq(variables['Build.SourceBranch'], 'refs/heads/main') }}
   isTag:       ${{ startsWith(variables['Build.SourceBranch'], 'refs/tags/v') }}
