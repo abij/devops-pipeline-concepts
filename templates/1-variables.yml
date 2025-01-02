@@ -65,7 +65,7 @@ stages:
         env | sort
       displayName: Print All
       env:
-        SOME_EXTRA_VAR: 'All values are avaiable through ENV, expect one.'
+        SOME_EXTRA_VAR: 'All values are available through ENV, expect one the SYSTEM_ACCESSTOKEN is not there!'
 
     - script: |
         echo "Pipeline.Workspace: $(Pipeline.Workspace) (same as Agent.BuildDirectory)"
@@ -145,24 +145,24 @@ stages:
     #   isReadOnly: (default: false) (true: cannot be updated)
     #
     # Let make some variables:
-    #   var1_no_output: this variable is not output, so it is not available in other jobs.
-    #   var2_is_output: this variable is output, so it is available in other jobs.
-    #   var3_no_output_is_secret: it's value is always.
-    #   var4_no_output_is_readonly: it's value is immutable.
+    #   var1: this variable is not output, so it is not available in other jobs.
+    #   var2: this variable is output, so it is available in other jobs.
+    #   var3: it's value is always.
+    #   var4: it's value is immutable.
 
     - script: |
-        echo "##vso[task.setvariable variable=var1_no_output]this is usable ONLY in this Job!"
-        echo "##vso[task.setvariable variable=var2_is_output;isOutput=true]This can by used in all jobs that dependsOn this stage!"
-        echo "##vso[task.setvariable variable=var3_no_output_is_secret;iSsecret=true]this is never shown in the logs!"
-        echo "##vso[task.setvariable variable=var4_no_output_is_readonly;isreadonly=true]this value is immutable."
+        echo "##vso[task.setvariable variable=var1]this is usable ONLY in this Job!"
+        echo "##vso[task.setvariable variable=var2;isOutput=true]This can by used in all jobs that dependsOn this stage!"
+        echo "##vso[task.setvariable variable=var3;isSecret=true]this is never shown in the logs!"
+        echo "##vso[task.setvariable variable=var4;isReadonly=true]this value is immutable."
         
         # After this task the variables are available:
-        echo "$(var1_no_output)" # this line will silently fail.
+        echo "$(var1) << nothing there, subsequent steps can use var1."
       name: task_vars
       displayName: Set variables
 
     # Whats happens when you update a readOnly variable?
-    - script: echo "##vso[task.setvariable variable=var4_no_output_is_readonly]is it mutable?."
+    - script: echo "##vso[task.setvariable variable=var4]is it mutable?."
       displayName: Try to update readonly
       failOnStderr: false
       continueOnError: true
@@ -173,22 +173,23 @@ stages:
       inputs:
         scriptSource: inline
         script: |
-          print('Output variables can be created inside Pyhton code:')
-          print('##vso[task.setvariable variable=var5_python]Created inside Python')
+          print('Output variables can be created inside Python code:')
+          print('##vso[task.setvariable variable=var5]Created inside Python') 
 
     - script: |
         echo "How to reference variables:"
-        echo "  var1: $(var1_no_output)"
-        echo "  var2: $(var2_is_output)            (incorrect: missing task.name)"
-        echo "  var2: $(task_vars.var2_is_output)  (correct: including task.name, required because isOutput=true)"
-        echo "  var3: $(var3_no_output_is_secret)"
-        echo "  var4: $(var4_no_output_is_readonly)"
-        echo "  var5: $(var5_python)"
+        echo "  var1: $(var1)"
+        echo "  var2: $(var2)  << incorrect: missing task.name"
+        echo "  var2: $(task_vars.var2) << correct: including task.name, required because isOutput=true"
+        echo "  var3: $(var3)"
+        echo "  var4: $(var4)"
+        echo "  var5: $(var5)"
       displayName: Show vars (same job)
 
 
-  # var6_in_deployment is created in type deployment, instead of a 'normal' job
-  - deployment: d1
+  # var6 is created in type deployment, instead of a 'normal' job
+  # We prepare this for the next stage, because the refferencing the var is slightly different.
+  - deployment: d1  # <-- deployment type
     displayName: Set variables (d1)
     environment: 'example-env1'
     strategy:
@@ -196,12 +197,12 @@ stages:
         deploy:
           steps:
           - script: |
-              echo "##vso[task.setvariable variable=var6_in_deployment;isOutput=true]Created inside a type-Deployment"
-              echo "Created output variable 'var6_in_deployment' in a deployment, this is referenced differently!"
+              echo "##vso[task.setvariable variable=var6;isOutput=true]Created inside a type-Deployment"
+              echo "Created output variable 'var6' in a deployment, this is referenced differently!"
             name: task_vars
             displayName: Set variable (deployment)
 
-  # Referencing variables:
+  # ========== Referencing variables ==================
   #
   # To be able to read the variables from previous jobs, you need to add a dependsOn.
   - job: j4
@@ -210,19 +211,19 @@ stages:
 
     variables:
       # val1 has been created with "isOutput=false", therefor this is an empty variable, no error.
-      - name: var1_no_output  
-        value: $[ dependencies.j3.outputs['task_vars.var1_no_output'] ]
-      - name: var2_is_output
-        value: $[ dependencies.j3.outputs['task_vars.var2_is_output'] ]
-      - name: var6_in_deployment
-        value: $[ dependencies.d1.outputs['task_vars.var6_in_deployment'] ]
+      - name: var1  
+        value: $[ dependencies.j3.outputs['task_vars.var1'] ]
+      - name: var2
+        value: $[ dependencies.j3.outputs['task_vars.var2'] ]
+      - name: var6
+        value: $[ dependencies.d1.outputs['task_vars.var6'] ]
 
     steps:
     - checkout: none  # skip checkout
     - script: |
-        echo "  var1_no_output: $(var1_no_output)  (empty because isOutput=false)"
-        echo "  var2_is_output: $(var2_is_output)"
-        echo "  var6_in_deployment: $(var2_is_output)   (from deployment)"
+        echo "  var1: $(var1)  (empty because isOutput=false)"
+        echo "  var2: $(var2)"
+        echo "  var6: $(var2)   (from deployment)"
       displayName: Show vars (future job)
 
 - stage: s1b
@@ -231,10 +232,11 @@ stages:
 
   variables:
     # For jobs: stageDependencies.[STAGE].[JOB].outputs['[TASK].[VAR]']
-    job_variable: $[stageDependencies.s1a.j3.outputs['task_vars.var2_is_output']]
-    # Note: deployment reference repeat the name (d1)!
+    job_variable: $[stageDependencies.s1a.j3.outputs['task_vars.var2']]
+    
+    # For deployments: reference repeat the name (d1)!
     #   stageDependencies.[STAGE].[DEPLOYMENT].outputs['[DEPLOYMENT].[TASK].[VAR]']
-    deployment_var: $[stageDependencies.s1a.d1.outputs['d1.task_vars.var6_in_deployment']]
+    deployment_var: $[stageDependencies.s1a.d1.outputs['d1.task_vars.var6']]
 
   jobs:
   - job: j1
@@ -270,20 +272,22 @@ stages:
     - bash: env | sort > $(Build.ArtifactStagingDirectory)\sorted_env_vars.txt
       displayName: Dummy file
 
-    # Problem: failing artifact creation.
+    # Problem: next step fails, because artifact name exists.
     - publish: $(Build.ArtifactStagingDirectory)
-      artifact: mustbe_unique  # <-- fails on retry job.
+      artifact: mustbe_unique
       displayName: Artifact
       continueOnError: true    # suppressed for demo purposes.
 
+    # here the artifact already exists...
+    # Normally this happens with a retry of the job.
     - publish: $(Build.ArtifactStagingDirectory)
-      artifact: mustbe_unique  # <-- fails, always exists.
+      artifact: mustbe_unique
       displayName: Artifact_fail
       continueOnError: true    # suppressed for demo purposes.
 
     # Solution: predefine a unique name for the artifact.
     # After Job-restart a new artifact will be created.
-    # Pass artifact name as output variable to the next job.
+    # Pass artifact name as output variable to the subsequent job(s).
     - bash: |
         echo "Create artifact name based on the buildId or system.jobattempt"
         echo "  Build.BuildId: $(Build.BuildId)"

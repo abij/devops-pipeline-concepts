@@ -27,9 +27,12 @@ stages:
     displayName: Azure-devops
     steps:
   
+    # Optional
     - bash: az devops configure --defaults organization=$(System.TeamFoundationCollectionUri) project=$(System.TeamProject) --use-git-aliases true
       displayName: 'Set defaults'
 
+    # Interact with Azure DevOps!
+    # Permissions for identity "<DevOps Project> Build Service (<Organisation>)".
     - bash: |
         az pipelines build list
       displayName: 'Show pipelines'

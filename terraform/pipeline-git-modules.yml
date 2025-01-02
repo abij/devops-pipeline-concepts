@@ -1,0 +1,60 @@
+
+
+trigger: none
+
+# Asuming the repo with sub-modules is here:
+#     https://your-organisation@dev.azure.com/your-organisation/YourProject/_git/Shared.Terraform.Modules
+# Terraform you are using this reference to module:
+#
+# module "something_from_shared" {
+#   source = "git::https://your-organisation@dev.azure.com/your-organisation/YourProject/_git/Shared.Terraform.Modules//subfolder"
+#   ...
+# }
+#
+# Good practice to pin the module based on tags, or a specific branch during development.
+# Tag your modules based on the folder structure, e.g. module-xyz/1.0.0.
+#
+# module "something_from_shared" {
+#   source = "git::https://your-organisation@dev.azure.com/your-organisation/YourProject/_git/Shared.Terraform.Modules//subfolder?ref=module-xyz/1.0.0"
+#   ...
+# }
+  
+# Pointer to other repo, this will create an alias 'tf-modules' for the repository.
+# This will request the user to Authorize the pipeline to access the repo.
+resources:
+  repositories:
+    - repository: tf-modules
+      type: git
+      name: 'YourProject/Shared.Terraform.Modules'
+      # At the pipeline UI, you can select the branch, otherwise the default branch will be used.
+
+
+jobs:
+  - job: 'terraform-init'
+    displayName: 'Example TF init external submodules'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - checkout: self
+      - checkout: tf-modules
+        path: 's/tf_modules'
+        fetchDepth: 0     # required to be able to witch branches
+        fetchTags: true
+
+      - bash: |
+          git config --global url."file://$(Pipeline.Workspace)/s/tf_modules/".insteadOf "https://your-organisation@dev.azure.com/your-organisation/YourProject/_git/Shared.Terraform.Modules"
+          echo "Show current git settings:"
+          git config list --global
+        displayName: 'Configure git url pointer to local folder'
+ 
+      # Terraform init -backend=false
+
+      - bash: |
+          # remove the url's from the local git config
+          for url in $(git config --global --get-regexp "^url" | sed s'/.instead.*//
+          do
+            echo "Cleanup git config: $url"
+            git config --global --remove-section $url
+          done
+        displayName: 'Cleanup git config'
+        condition: always()

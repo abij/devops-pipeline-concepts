@@ -1,7 +1,7 @@
 # This template demonstrates the job types.
 #
 # Key points for types:
-# - Job usually depend on source code to build, test and publish.
+# - Job usually depends on source code to build, test and publish.
 # - Deployment usually depend on (pipeline) artifacts to deploy apps or infrastructure.
 
 
@@ -9,10 +9,13 @@ stages:
 - stage: s2a
   displayName: Preperation (s2a)
   dependsOn: []
+  
   jobs:
   - job: j1
     displayName: Create actifact
+    
     steps:
+    
     # Pipeline artifacts have to be unique, to support restartability, make the name unique each run.
     - script: |
         name="artifact1#$(System.JobAttempt)-$(Build.BuildId)"
