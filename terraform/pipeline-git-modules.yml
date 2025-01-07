@@ -41,16 +41,19 @@ jobs:
         fetchDepth: 0     # required to be able to witch branches
         fetchTags: true
 
+      # Link the actual url for modules to the local folder, which is checkout with tags and fetchDept 0 for all branches etc.
       - bash: |
           git config --global url."file://$(Pipeline.Workspace)/s/tf_modules/".insteadOf "https://your-organisation@dev.azure.com/your-organisation/YourProject/_git/Shared.Terraform.Modules"
           echo "Show current git settings:"
           git config list --global
         displayName: 'Configure git url pointer to local folder'
- 
-      # Terraform init -backend=false
 
+      # For readability, the next task is not implemented, loading Terraform modules from the git repo.
+      #   Terraform init -backend=false
+
+      # Always: remove the url's from the git config
+      # Otherwise this agent is "infected" and can have impact on other pipelines and jobs running here.
       - bash: |
-          # remove the url's from the local git config
           for url in $(git config --global --get-regexp "^url" | sed s'/.instead.*//' )
           do
             echo "Cleanup git config: $url"
