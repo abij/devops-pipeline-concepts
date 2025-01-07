@@ -51,7 +51,7 @@ jobs:
 
       - bash: |
           # remove the url's from the local git config
-          for url in $(git config --global --get-regexp "^url" | sed s'/.instead.*//
+          for url in $(git config --global --get-regexp "^url" | sed s'/.instead.*//' )
           do
             echo "Cleanup git config: $url"
             git config --global --remove-section $url
